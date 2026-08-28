@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Placement Week — Departures</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --board-body: #0a0c10;
+    --board-panel: #15181f;
+    --panel-hi: #1b1f28;
+    --flap-face: #1e222b;
+    --flap-face-2: #262b35;
+    --line: #2a3040;
+    --ink: #f2f4f8;
+    --ink-dim: #8c96ab;
+    --amber: #ffb545;
+    --amber-soft: #7a5620;
+    --cyan: #4fe0d4;
+    --cyan-soft: #1f4d49;
+    --violet: #b98af0;
+    --violet-soft: #4a3268;
+    --red: #ff6b60;
+    --red-soft: #542523;
+    --green: #6ee89a;
+    --green-soft: #1f4a34;
+    --mono: 'IBM Plex Mono', 'SF Mono', Consolas, monospace;
+    --sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--board-body); color: var(--ink);
+    font-family: var(--sans); font-size: 15px;
+  }
+
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 30px; border-bottom: 1px solid var(--line);
+    background: linear-gradient(120deg, #14121c 0%, #0e1016 55%, #0a0c10 100%);
+  }
+  header .brand { display: flex; align-items: center; gap: 14px; }
+  header h1 {
+    font-family: var(--mono); font-size: 21px; margin: 0; font-weight: 700;
+    letter-spacing: 0.06em; color: var(--ink);
+  }
+  header h1 .sep { color: var(--amber); margin: 0 10px; }
+  header .live { display: flex; align-items: center; gap: 7px; }
+  header .live .dot {
+    width: 9px; height: 9px; border-radius: 50%; background: var(--cyan);
+    box-shadow: 0 0 12px var(--cyan); animation: pulse 2.2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+  header .live span.label { font-family: var(--mono); font-size: 11px; letter-spacing: 0.16em; color: var(--cyan); }
+  header .sub { color: var(--ink-dim); font-size: 12.5px; font-family: var(--mono); letter-spacing: 0.03em; }
+  header .right { display: flex; align-items: center; gap: 20px; }
+  .btn {
+    background: var(--flap-face); color: var(--ink); border: 1px solid var(--line);
+    padding: 11px 20px; border-radius: 7px; cursor: pointer; font-family: var(--mono);
+    font-size: 12.5px; letter-spacing: 0.05em; transition: all .15s ease; font-weight: 500;
+  }
+  .btn:hover { border-color: var(--amber); color: var(--amber); transform: translateY(-1px); }
+  .btn.primary { background: var(--amber-soft); border-color: var(--amber); color: var(--amber); font-weight: 700; }
+  .btn.primary:hover { background: var(--amber); color: #201503; }
+  .btn:active { transform: translateY(0); }
+
+  .layout { display: grid; grid-template-columns: 1fr 420px; gap: 1px; background: var(--line); }
+  .main, .side { background: var(--board-body); padding: 26px 30px; }
+  .side { border-left: 1px solid var(--line); }
+
+  .setup-card {
+    background: linear-gradient(135deg, #191424 0%, var(--board-panel) 45%);
+    border: 1px solid var(--violet-soft); border-radius: 12px;
+    padding: 22px 26px; margin-bottom: 24px;
+  }
+  .setup-card .setup-title {
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.1em; color: var(--violet);
+    text-transform: uppercase; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+  }
+  .setup-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+  .setup-field label {
+    display: block; font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em;
+    color: var(--ink-dim); text-transform: uppercase; margin-bottom: 8px;
+  }
+  .setup-field .row2 { display: flex; align-items: center; gap: 10px; }
+  .setup-field input[type=range] { flex: 1; accent-color: var(--violet); height: 5px; cursor: pointer; }
+  .setup-field input[type=number] {
+    width: 78px; background: var(--flap-face); border: 1px solid var(--line); color: var(--ink);
+    padding: 8px 10px; border-radius: 6px; font-family: var(--mono); font-size: 14px; font-weight: 600;
+    text-align: center;
+  }
+  .setup-field input:focus { outline: none; }
+  .setup-actions { display: flex; align-items: center; gap: 14px; margin-top: 20px; }
+  .setup-note { font-size: 12px; color: var(--ink-dim); }
+  .setup-note.err { color: var(--red); }
+
+  .metrics { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 14px; }
+  .metric {
+    background: var(--board-panel); border: 1px solid var(--line); border-radius: 8px;
+    padding: 15px 16px; position: relative; overflow: hidden;
+  }
+  .metric::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+  .metric.m-cov::before { background: var(--amber); }
+  .metric.m-sched::before { background: var(--green); }
+  .metric.m-unsched::before { background: var(--red); }
+  .metric.m-room::before { background: var(--cyan); }
+  .metric.m-wait::before { background: var(--violet); }
+  .metric .label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-dim); }
+  .metric .value { font-family: var(--mono); font-size: 30px; margin-top: 6px; font-weight: 700; color: var(--amber); }
+  .metric .value.good { color: var(--green); }
+  .metric .value.warn { color: var(--amber); }
+  .metric .value.bad { color: var(--red); }
+
+  .risk-strip { display: flex; gap: 9px; margin-bottom: 20px; flex-wrap: wrap; }
+  .risk-strip .badge { font-family: var(--mono); font-size: 11.5px; padding: 7px 13px; border-radius: 20px; letter-spacing: 0.02em; font-weight: 500; }
+  .badge.ok   { color: var(--green); background: var(--green-soft); }
+  .badge.bad  { color: var(--red);   background: var(--red-soft); }
+  .badge.warn { color: var(--amber); background: var(--amber-soft); }
+
+  .day-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+  .day-tabs button {
+    background: var(--board-panel); border: 1px solid var(--line); color: var(--ink-dim);
+    padding: 10px 22px; border-radius: 8px 8px 0 0; cursor: pointer; font-family: var(--mono);
+    font-size: 12.5px; letter-spacing: 0.06em; font-weight: 500; transition: all .15s ease;
+  }
+  .day-tabs button:hover { color: var(--ink); }
+  .day-tabs button.active { background: var(--flap-face); color: var(--amber); border-color: var(--amber-soft); box-shadow: 0 -2px 14px rgba(255,181,69,0.12); }
+
+  /* --- GRID LAYOUT START (REPLACED TABLE WITH CSS GRID TO REMOVE GAP) --- */
+  .grid-wrap {
+    background: var(--board-panel); border: 1px solid var(--line); border-radius: 10px;
+    overflow: auto; max-height: 640px; padding: 0;
+  }
+  .grid-container {
+    display: grid;
+    grid-template-columns: 120px 1fr; /* 120px for labels, rest for time slots */
+    gap: 0; /* <--- CRITICAL: This removes ALL gaps between label and slots */
+    font-family: var(--mono); font-size: 11px;
+  }
+  .grid-head {
+    position: sticky; top: 0; z-index: 3; background: var(--board-panel);
+    padding: 8px 10px; font-size: 10px; color: var(--ink-dim); text-align: right;
+  }
+  .grid-head.timeline {
+    display: grid;
+    grid-template-columns: repeat(32, 1fr);
+  }
+  .grid-head.timeline span { text-align: center; }
+
+  .gate-label {
+    position: sticky; left: 0; background: var(--board-panel); z-index: 2;
+    padding: 5px 10px; font-size: 11.5px; font-weight: 600; border-right: 1px solid var(--line); /* Border now separates them */
+    display: flex; flex-direction: column; justify-content: center;
+  }
+  .gate-label .rtype { color: var(--ink-dim); font-weight: 400; font-size: 9px; letter-spacing: 0.05em; }
+
+  .slot-row {
+    display: grid;
+    grid-template-columns: repeat(32, 1fr);
+    gap: 1px; /* small gap between slots themselves */
+    background: var(--line); /* creates the grid lines for slots */
+    margin-bottom: 4px; /* vertical gap between rooms */
+  }
+  .slot-cell {
+    background: var(--flap-face); border: 1px solid #262b35;
+    height: 30px; position: relative; overflow: hidden;
+  }
+  .slot-cell.bar-slot {
+    background: var(--flap-face-2);
+    border: 1px solid #333a48; border-left-width: 4px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), inset 0 -3px 5px rgba(0,0,0,0.4);
+  }
+  .slot-cell.bar-slot:hover {
+    z-index: 5; transform: scale(1.08);
+    box-shadow: 0 0 16px rgba(255,181,69,0.35), inset 0 1px 0 rgba(255,255,255,0.08);
+  }
+  .bar-content {
+    height: 100%; display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 600; color: var(--amber);
+    transform-origin: 50% 0%;
+  }
+  .slot-cell.tier1 { border-left-color: #3fb0a4; } .slot-cell.tier1 .bar-content { color: #7fe0d3; }
+  .slot-cell.tier2 { border-left-color: var(--cyan); } .slot-cell.tier2 .bar-content { color: var(--cyan); }
+  .slot-cell.tier3 { border-left-color: var(--amber); } .slot-cell.tier3 .bar-content { color: var(--amber); }
+  .slot-cell.tier4 { border-left-color: var(--violet); } .slot-cell.tier4 .bar-content { color: var(--violet); }
+
+  @keyframes flapFlip {
+    0%   { transform: rotateX(95deg); opacity: 0.2; filter: brightness(2.6); }
+    55%  { transform: rotateX(-10deg); opacity: 1; }
+    100% { transform: rotateX(0deg); opacity: 1; filter: brightness(1); }
+  }
+  .bar-content.flap-flip { animation: flapFlip 0.6s cubic-bezier(.2,.7,.3,1); }
+  /* --- GRID LAYOUT END --- */
+
+  .legend { display: flex; gap: 18px; margin-top: 14px; font-size: 11.5px; color: var(--ink-dim); flex-wrap: wrap; font-family: var(--mono); }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; }
+  .legend i { width: 11px; height: 11px; display: inline-block; border-radius: 3px; }
+
+  h2 {
+    font-family: var(--mono); font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--amber); margin: 0 0 14px; padding-left: 12px; border-left: 3px solid var(--amber-soft);
+  }
+  .panel-block {
+    background: var(--board-panel); border: 1px solid var(--line);
+    border-radius: 10px; padding: 18px; margin-bottom: 16px; transition: border-color .15s ease;
+  }
+  .panel-block:hover { border-color: #3a4256; }
+  .panel-block label { display: block; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.05em; color: var(--ink-dim); margin: 11px 0 5px; }
+  .panel-block select, .panel-block input[type=text], .panel-block input[type=number] {
+    width: 100%; background: var(--flap-face); border: 1px solid var(--line); color: var(--ink);
+    padding: 9px 11px; border-radius: 6px; font-family: var(--sans); font-size: 13px;
+  }
+  .panel-block select:focus, .panel-block input:focus { outline: none; border-color: var(--amber-soft); }
+  .panel-block .row { display: flex; gap: 10px; }
+  .panel-block .row > div { flex: 1; }
+  .apply-btn {
+    margin-top: 14px; width: 100%; background: var(--amber-soft); border: 1px solid var(--amber);
+    color: var(--amber); padding: 12px; border-radius: 7px; cursor: pointer; font-weight: 700;
+    font-family: var(--mono); font-size: 12.5px; letter-spacing: 0.06em; transition: all .15s ease;
+  }
+  .apply-btn:hover { background: var(--amber); color: #201503; transform: translateY(-1px); }
+
+  .diff-summary { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .badge { font-family: var(--mono); font-size: 11px; padding: 5px 11px; border-radius: 16px; font-weight: 500; }
+  .badge.moved { color: var(--amber); background: var(--amber-soft); }
+  .badge.cancelled { color: var(--red); background: var(--red-soft); }
+  .badge.newly { color: var(--green); background: var(--green-soft); }
+  .badge.stuck { color: var(--ink-dim); background: #23272f; }
+
+  .diff-list { max-height: 280px; overflow-y: auto; font-size: 12.5px; }
+  .diff-row { padding: 9px 0; border-bottom: 1px solid var(--line); }
+  .diff-row .who { font-family: var(--mono); color: var(--ink); font-size: 12px; }
+  .diff-row .reason { color: var(--ink-dim); font-size: 11px; margin-top: 3px; }
+  .tag { font-family: var(--mono); font-size: 9.5px; text-transform: uppercase; padding: 3px 7px; border-radius: 4px; margin-right: 7px; letter-spacing: 0.03em; font-weight: 600; }
+  .tag.moved { background: var(--amber-soft); color: var(--amber); }
+  .tag.cancelled { background: var(--red-soft); color: var(--red); }
+  .tag.newly_scheduled { background: var(--green-soft); color: var(--green); }
+  .tag.still_unscheduled { background: #23272f; color: var(--ink-dim); }
+
+  .log { font-size: 12px; color: var(--ink-dim); max-height: 150px; overflow-y: auto; font-family: var(--mono); }
+  .log div { padding: 6px 0; border-bottom: 1px solid var(--line); }
+
+  .empty-hint { color: var(--ink-dim); font-size: 13px; padding: 12px 0; font-family: var(--sans); }
+
+  #toasts { position: fixed; bottom: 24px; right: 24px; z-index: 100; display: flex; flex-direction: column; gap: 10px; }
+  .toast {
+    background: var(--panel-hi); border: 1px solid var(--red); color: var(--ink);
+    padding: 14px 18px; border-radius: 8px; font-size: 13px; max-width: 340px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4); animation: slideIn .25s ease;
+  }
+  @keyframes slideIn { from { transform: translateX(30px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+  ::-webkit-scrollbar { width: 9px; height: 9px; }
+  ::-webkit-scrollbar-thumb { background: var(--line); border-radius: 5px; }
+</style>
+</head>
+<body>
+
+<div id="toasts"></div>
+
+<header>
+  <div class="brand">
+    <h1>PLACEMENT WEEK <span class="sep">/</span> DEPARTURES</h1>
+  </div>
+  <div class="right">
+    <span class="sub" id="headerSub">loading…</span>
+    <div class="live"><span class="dot"></span><span class="label">LIVE</span></div>
+    <button class="btn" onclick="downloadCsv()">⬇ EXPORT CSV</button>
+  </div>
+</header>
+
+<div class="layout">
+  <div class="main">
+
+    <div class="setup-card">
+      <div class="setup-title">⚙ DATASET SETUP — GENERATE A NEW PLACEMENT WEEK</div>
+      <div class="setup-grid">
+        <div class="setup-field">
+          <label>Companies</label>
+          <div class="row2">
+            <input type="range" id="rngCompanies" min="4" max="150" value="35" oninput="syncFromRange('Companies')">
+            <input type="number" id="cfgCompanies" min="4" max="150" value="35" oninput="syncFromNumber('Companies')">
+          </div>
+        </div>
+        <div class="setup-field">
+          <label>Students</label>
+          <div class="row2">
+            <input type="range" id="rngStudents" min="10" max="5000" value="800" oninput="syncFromRange('Students')">
+            <input type="number" id="cfgStudents" min="10" max="5000" value="800" oninput="syncFromNumber('Students')">
+          </div>
+        </div>
+        <div class="setup-field">
+          <label>Rooms</label>
+          <div class="row2">
+            <input type="range" id="rngRooms" min="1" max="100" value="20" oninput="syncFromRange('Rooms')">
+            <input type="number" id="cfgRooms" min="1" max="100" value="20" oninput="syncFromNumber('Rooms')">
+          </div>
+        </div>
+      </div>
+      <div class="setup-actions">
+        <button class="btn primary" id="genBtn" onclick="resetState()">↺ GENERATE &amp; SCHEDULE</button>
+        <span class="setup-note" id="setupNote">Adjust the sliders or type exact numbers, then generate.</span>
+      </div>
+    </div>
+
+    <div class="metrics" id="metrics"></div>
+    <div class="risk-strip" id="riskFlags"></div>
+
+    <div class="day-tabs" id="dayTabs"></div>
+    
+    <!-- CHANGED: Replaced table with div.grid-container -->
+    <div class="grid-wrap">
+      <div class="grid-container" id="grid"></div>
+    </div>
+
+    <div class="legend">
+      <span><i style="background:#3fb0a4"></i> Tier 1 — Day-1 mass recruiters</span>
+      <span><i style="background:#4fe0d4"></i> Tier 2</span>
+      <span><i style="background:#ffb545"></i> Tier 3</span>
+      <span><i style="background:#b98af0"></i> Tier 4 — niche/late</span>
+      <span><i style="background:#1e222b;border:1px solid #333a48"></i> Free</span>
+    </div>
+  </div>
+
+  <div class="side">
+    <div class="panel-block">
+      <h2>File a disruption</h2>
+      <label>Disruption type</label>
+      <select id="disruptType" onchange="renderDisruptForm()">
+        <option value="company_late">Company arrives late</option>
+        <option value="panel_drop">Interview panel drops out</option>
+        <option value="student_withdraw">Student withdraws</option>
+        <option value="room_unavailable">Room becomes unavailable</option>
+      </select>
+      <div id="disruptForm"></div>
+      <button class="apply-btn" onclick="applyDisruption()">▸ APPLY &amp; REPLAN</button>
+    </div>
+
+    <div class="panel-block">
+      <h2>Last replan — manifest</h2>
+      <div id="diffSummary" class="diff-summary"></div>
+      <div id="notifyBox" style="margin-bottom:12px;"></div>
+      <div id="diffList" class="diff-list"><div class="empty-hint">No disruption applied yet this session.</div></div>
+    </div>
+
+    <div class="panel-block">
+      <h2>No-show board (<span id="unschedCount">0</span>)</h2>
+      <div id="unschedList" class="diff-list"><div class="empty-hint">None — every candidate interview was placed.</div></div>
+    </div>
+
+    <div class="panel-block">
+      <h2>At-risk resources</h2>
+      <div id="atRisk" style="font-size:12.5px;"></div>
+    </div>
+
+    <div class="panel-block">
+      <h2>Session log</h2>
+      <div id="log" class="log"><div class="empty-hint">Empty.</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+let STATE = null;
+let currentDay = 0;
+let flipIdsPending = new Set();
+
+function toast(msg) {
+  const box = document.getElementById('toasts');
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = msg;
+  box.appendChild(el);
+  setTimeout(() => el.remove(), 5000);
+}
+
+function syncFromRange(field) {
+  document.getElementById('cfg'+field).value = document.getElementById('rng'+field).value;
+}
+function syncFromNumber(field) {
+  const num = document.getElementById('cfg'+field);
+  const rng = document.getElementById('rng'+field);
+  let v = parseInt(num.value);
+  if (isNaN(v)) return;
+  v = Math.max(parseInt(rng.min), Math.min(parseInt(rng.max), v));
+  rng.value = v;
+}
+
+async function fetchState() {
+  const res = await fetch('/api/state', { cache: 'no-store' });
+  STATE = await res.json();
+  render();
+}
+
+async function resetState() {
+  const n_companies = parseInt(document.getElementById('cfgCompanies').value);
+  const n_students = parseInt(document.getElementById('cfgStudents').value);
+  const n_rooms = parseInt(document.getElementById('cfgRooms').value);
+  const note = document.getElementById('setupNote');
+  const btn = document.getElementById('genBtn');
+
+  if ([n_companies, n_students, n_rooms].some(v => isNaN(v))) {
+    note.textContent = 'Please enter valid numbers for all three fields.';
+    note.className = 'setup-note err';
+    return;
+  }
+
+  note.textContent = 'Generating dataset and scheduling…';
+  note.className = 'setup-note';
+  btn.textContent = '⏳ WORKING…';
+  btn.disabled = true;
+
+  try {
+    const res = await fetch('/api/reset', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ seed: 42, n_companies, n_students, n_rooms })
+    });
+    const d = await res.json();
+    if (!res.ok) {
+      note.textContent = d.error || 'Could not generate dataset.';
+      note.className = 'setup-note err';
+      toast(d.error || 'Could not generate dataset.');
+      return;
+    }
+    document.getElementById('diffList').innerHTML = '<div class="empty-hint">No disruption applied yet this session.</div>';
+    document.getElementById('diffSummary').innerHTML = '';
+    document.getElementById('notifyBox').innerHTML = '';
+    flipIdsPending.clear();
+    currentDay = 0;
+    STATE = d;
+    render();
+    note.textContent = `Generated ${d.companies.length} companies · ${d.students.length} students · ${d.rooms.length} rooms.`;
+    note.className = 'setup-note';
+  } catch (e) {
+    note.textContent = 'Network error — is the server still running?';
+    note.className = 'setup-note err';
+    toast('Network error contacting the server.');
+  } finally {
+    btn.textContent = '↺ GENERATE & SCHEDULE';
+    btn.disabled = false;
+  }
+}
+
+function downloadCsv() {
+  window.location.href = '/api/export/csv';
+}
+
+function render() {
+  renderHeader();
+  renderMetrics();
+  renderRiskFlags();
+  renderUnscheduled();
+  renderAtRisk();
+  renderDayTabs();
+  renderGrid();
+  renderDisruptForm();
+  renderLog();
+}
+
+function renderHeader() {
+  const n = STATE.companies.length, s = STATE.students.length, r = STATE.rooms.length;
+  document.getElementById('headerSub').textContent = `${n} COMPANIES · ${s} STUDENTS · ${r} ROOMS · 4 DAYS`;
+  document.getElementById('cfgCompanies').value = n;
+  document.getElementById('rngCompanies').value = n;
+  document.getElementById('cfgStudents').value = s;
+  document.getElementById('rngStudents').value = s;
+  document.getElementById('cfgRooms').value = r;
+  document.getElementById('rngRooms').value = r;
+}
+
+function animateValue(el, to, suffix) {
+  const from = parseFloat(el.dataset.val || '0');
+  const dur = 500, start = performance.now();
+  function step(now) {
+    const p = Math.min(1, (now - start) / dur);
+    const v = from + (to - from) * (1 - Math.pow(1 - p, 3));
+    el.textContent = (Number.isInteger(to) ? Math.round(v) : v.toFixed(1)) + (suffix || '');
+    if (p < 1) requestAnimationFrame(step); else el.dataset.val = to;
+  }
+  requestAnimationFrame(step);
+}
+
+function renderMetrics() {
+  const rep = STATE.report;
+  const el = document.getElementById('metrics');
+  const cov = rep.coverage.coverage_pct;
+  const covClass = cov > 90 ? 'good' : (cov > 75 ? 'warn' : 'bad');
+  el.innerHTML = `
+    <div class="metric m-cov"><div class="label">Coverage</div><div class="value ${covClass}" id="mCov">0%</div></div>
+    <div class="metric m-sched"><div class="label">Scheduled</div><div class="value" id="mSched">0</div></div>
+    <div class="metric m-unsched"><div class="label">Unscheduled</div><div class="value ${rep.coverage.unscheduled>0?'warn':''}" id="mUnsched">0</div></div>
+    <div class="metric m-room"><div class="label">Room util</div><div class="value" id="mRoom">0%</div></div>
+    <div class="metric m-wait"><div class="label">Avg wait</div><div class="value" id="mWait">0m</div></div>
+  `;
+  animateValue(document.getElementById('mCov'), cov, '%');
+  animateValue(document.getElementById('mSched'), rep.coverage.scheduled, '');
+  animateValue(document.getElementById('mUnsched'), rep.coverage.unscheduled, '');
+  animateValue(document.getElementById('mRoom'), rep.room_utilisation.overall_pct, '%');
+  animateValue(document.getElementById('mWait'), rep.student_wait_times.avg_wait_min, 'm');
+}
+
+function renderRiskFlags() {
+  const rep = STATE.report;
+  const el = document.getElementById('riskFlags');
+  const clashes = rep.student_clashes.clash_count;
+  const tight = rep.tight_transitions.count;
+  const slackDays = rep.low_slack_warning.tight_days;
+  const items = [];
+  items.push(`<span class="badge ${clashes>0?'bad':'ok'}">${clashes} CLASHES (AUDITED)</span>`);
+  items.push(`<span class="badge ${tight>0?'bad':'ok'}">${tight} ZERO-WALK TRANSITIONS</span>`);
+  if (slackDays.length) {
+    items.push(`<span class="badge warn">NO SLACK: ${slackDays.map(d=>d.replace('day_','DAY ')).join(', ').toUpperCase()}</span>`);
+  }
+  el.innerHTML = items.join('');
+}
+
+function renderUnscheduled() {
+  const companyById = Object.fromEntries(STATE.companies.map(c => [c.id, c]));
+  const unscheduled = STATE.interviews.filter(iv => iv.status === 'unscheduled');
+  document.getElementById('unschedCount').textContent = unscheduled.length;
+  const list = document.getElementById('unschedList');
+  if (unscheduled.length === 0) {
+    list.innerHTML = '<div class="empty-hint">None — every candidate interview was placed.</div>';
+    return;
+  }
+  const shown = unscheduled.slice(0, 150);
+  list.innerHTML = shown.map(iv => {
+    const comp = companyById[iv.company_id];
+    return `<div class="diff-row">
+      <span class="who">${iv.student_id} × ${comp ? comp.name : iv.company_id}</span>
+      <div class="reason">${iv.unscheduled_reason || 'no reason recorded'}</div>
+    </div>`;
+  }).join('') + (unscheduled.length > 150
+    ? `<div class="empty-hint">…and ${unscheduled.length - 150} more (showing first 150).</div>` : '');
+}
+
+function renderAtRisk() {
+  const rep = STATE.report;
+  const el = document.getElementById('atRisk');
+  const slackDays = rep.low_slack_warning.tight_days.map(d => d.replace('day_', 'Day '));
+  const busiest = rep.panel_utilisation.top5_busiest_companies;
+  let html = '';
+  if (slackDays.length) {
+    html += `<div style="margin-bottom:10px;"><b style="color:var(--amber)">${slackDays.join(', ')}</b> ${slackDays.length>1?'have':'has'} no room slack left (≥95% utilised).</div>`;
+  } else {
+    html += `<div style="margin-bottom:10px;color:var(--ink-dim);">No day is currently over 95% room-utilised.</div>`;
+  }
+  html += '<div style="color:var(--ink-dim);margin-bottom:6px;font-family:var(--mono);font-size:10.5px;letter-spacing:0.05em;">BUSIEST PANELS</div>';
+  html += busiest.map(b => `<div style="padding:3px 0;">${b.company} — <span style="color:var(--amber);font-family:var(--mono);font-weight:600;">${b.utilisation_pct}%</span></div>`).join('');
+  el.innerHTML = html;
+}
+
+function renderDayTabs() {
+  const el = document.getElementById('dayTabs');
+  el.innerHTML = '';
+  for (let d = 0; d < 4; d++) {
+    const b = document.createElement('button');
+    b.textContent = `DAY ${d+1}`;
+    if (d === currentDay) b.className = 'active';
+    b.onclick = () => { currentDay = d; renderDayTabs(); renderGrid(); };
+    el.appendChild(b);
+  }
+}
+
+function shortCode(name) {
+  return name.split(' ').map(w => w[0]).join('').slice(0, 3).toUpperCase();
+}
+
+// CHANGED: Renders the grid using pure CSS Grid divs instead of a table
+function renderGrid() {
+  const SLOTS = 32;
+  const rooms = STATE.rooms;
+  const companyById = Object.fromEntries(STATE.companies.map(c => [c.id, c]));
+  const studentById = Object.fromEntries(STATE.students.map(s => [s.id, s]));
+
+  const occ = {};
+  rooms.forEach(r => occ[r.id] = new Array(SLOTS).fill(null));
+  STATE.interviews.forEach(iv => {
+    if (iv.status === 'scheduled' && iv.day === currentDay) {
+      for (let s = iv.start_slot; s < iv.end_slot; s++) occ[iv.room_id][s] = iv;
+    }
+  });
+
+  let html = '<div class="grid-head">GATE</div><div class="grid-head timeline">';
+  for (let s = 0; s < SLOTS; s++) {
+    const totalMin = 9*60 + s*15;
+    const h = Math.floor(totalMin/60), m = totalMin%60;
+    html += `<span>${m===0 ? h : ''}</span>`;
+  }
+  html += '</div>';
+
+  rooms.forEach(r => {
+    html += `<div class="gate-label">${r.id}<span class="rtype">${r.room_type.toUpperCase()}</span></div>`;
+    html += `<div class="slot-row">`;
+    for (let s = 0; s < SLOTS; ) {
+      const iv = occ[r.id][s];
+      if (iv && s === iv.start_slot) {
+        const dur = iv.end_slot - iv.start_slot;
+        const c = companyById[iv.company_id];
+        const st = studentById[iv.student_id];
+        const title = (c ? c.name : iv.company_id) + ' x ' + (st ? st.name : iv.student_id) + ' | ' + iv.id;
+        const flip = flipIdsPending.has(iv.id) ? ' flap-flip' : '';
+        flipIdsPending.delete(iv.id);
+        const label = dur >= 2 ? shortCode(c ? c.name : iv.company_id) : '';
+        html += `<div class="slot-cell bar-slot tier${c ? c.tier : 1}" style="grid-column: span ${dur}" title="${title}"><div class="bar-content${flip}">${label}</div></div>`;
+        s += dur;
+      } else {
+        html += `<div class="slot-cell"></div>`;
+        s += 1;
+      }
+    }
+    html += `</div>`;
+  });
+
+  document.getElementById('grid').innerHTML = html;
+}
+
+function renderDisruptForm() {
+  const type = document.getElementById('disruptType').value;
+  const el = document.getElementById('disruptForm');
+  
+  // 1. Capture the currently selected value BEFORE we wipe the form
+  const prevCompany = document.getElementById('p_company')?.value || '';
+  const prevDay = document.getElementById('p_day')?.value || '1';
+  const prevDelay = document.getElementById('p_delay')?.value || '60';
+  const prevPanel = document.getElementById('p_panel')?.value || '0';
+
+  // 2. Sort companies by tier (Tier 1 first), but if equal, alphabetically
+  const companyOpts = STATE.companies
+    .slice()
+    .sort((a, b) => a.tier - b.tier || a.name.localeCompare(b.name))
+    .map(c => `<option value="${c.id}">${c.name} (T${c.tier}, ${c.num_panels} panels, day${c.allowed_days.map(d=>d+1).join('/')})</option>`).join('');
+    
+  const roomOpts = STATE.rooms.map(r => `<option value="${r.id}">${r.id} (${r.room_type})</option>`).join('');
+  const eligible = STATE.students.filter(s => s.shortlisted_by.length >= 2);
+
+  if (type === 'company_late') {
+    el.innerHTML = `
+      <label>Company</label><select id="p_company">${companyOpts}</select>
+      <div class="row">
+        <div><label>Day (1-4)</label><input type="number" id="p_day" min="1" max="4" value="1"></div>
+        <div><label>Delay (minutes)</label><input type="number" id="p_delay" min="15" step="15" value="60"></div>
+      </div>`;
+  } else if (type === 'panel_drop') {
+    el.innerHTML = `
+      <label>Company</label><select id="p_company">${companyOpts}</select>
+      <label>Panel number (0-indexed)</label><input type="number" id="p_panel" min="0" value="0">`;
+  } else if (type === 'student_withdraw') {
+    el.innerHTML = `
+      <label>Search student (ID or name)</label>
+      <input type="text" id="p_student_search" placeholder="Type to filter…" oninput="filterStudentOptions()">
+      <label style="margin-top:10px;">Student</label>
+      <select id="p_student" size="6" style="height:auto;"></select>`;
+    window._eligibleStudents = eligible;
+    filterStudentOptions();
+  } else if (type === 'room_unavailable') {
+    el.innerHTML = `<label>Room</label><select id="p_room">${roomOpts}</select>`;
+  }
+
+  // 3. Re-apply the captured values to the new elements
+  if (document.getElementById('p_company') && prevCompany) {
+    document.getElementById('p_company').value = prevCompany;
+  }
+  if (document.getElementById('p_day')) {
+    document.getElementById('p_day').value = prevDay;
+  }
+  if (document.getElementById('p_delay')) {
+    document.getElementById('p_delay').value = prevDelay;
+  }
+  if (document.getElementById('p_panel')) {
+    document.getElementById('p_panel').value = prevPanel;
+  }
+}
+
+function filterStudentOptions() {
+  const q = (document.getElementById('p_student_search')?.value || '').toLowerCase();
+  const sel = document.getElementById('p_student');
+  if (!sel) return;
+  const list = (window._eligibleStudents || []).filter(s =>
+    s.id.toLowerCase().includes(q) || s.name.toLowerCase().includes(q)
+  ).slice(0, 300);
+  sel.innerHTML = list.map(s => `<option value="${s.id}">${s.id} — ${s.name} (${s.shortlisted_by.length} interviews)</option>`).join('')
+    || '<option disabled>No matches</option>';
+}
+
+async function applyDisruption() {
+  const type = document.getElementById('disruptType').value;
+  let url, body, confirmMsg = null;
+
+  if (type === 'company_late') {
+    url = '/api/disrupt/company_late';
+    body = {
+      company_id: document.getElementById('p_company').value,
+      day: parseInt(document.getElementById('p_day').value) - 1,
+      delay_slots: Math.round(parseInt(document.getElementById('p_delay').value) / 15),
+    };
+  } else if (type === 'panel_drop') {
+    url = '/api/disrupt/panel_drop';
+    body = {
+      company_id: document.getElementById('p_company').value,
+      panel_no: parseInt(document.getElementById('p_panel').value),
+    };
+  } else if (type === 'student_withdraw') {
+    const sel = document.getElementById('p_student');
+    if (!sel.value) { toast('Pick a student first.'); return; }
+    url = '/api/disrupt/student_withdraw';
+    body = { student_id: sel.value };
+    confirmMsg = `This will cancel all of ${sel.value}'s remaining interviews. This cannot be undone. Continue?`;
+  } else if (type === 'room_unavailable') {
+    url = '/api/disrupt/room_unavailable';
+    body = { room_id: document.getElementById('p_room').value };
+    confirmMsg = `This will make ${body.room_id} unavailable for the rest of the event and reassign every interview in it. Continue?`;
+  }
+
+  if (confirmMsg && !window.confirm(confirmMsg)) return;
+
+  const res = await fetch(url, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  let result;
+  try {
+    result = await res.json();
+  } catch (e) {
+    toast('Server returned an unreadable response (HTTP ' + res.status + ').');
+    return;
+  }
+  if (!res.ok || result.error) {
+    toast('Could not apply disruption: ' + (result.error || ('HTTP ' + res.status)));
+    return;
+  }
+  flipIdsPending = new Set(
+    result.changes
+      .filter(c => c.change === 'moved' || c.change === 'newly_scheduled')
+      .map(c => c.interview_id)
+  );
+  await fetchState();
+  renderDiff(result);
+}
+
+function renderDiff(result) {
+  const sum = result.summary;
+  document.getElementById('diffSummary').innerHTML = `
+    <span class="badge moved">${sum.moved} MOVED</span>
+    <span class="badge cancelled">${sum.cancelled} CANCELLED</span>
+    <span class="badge newly">${sum.newly_scheduled} NEW</span>
+    <span class="badge stuck">${sum.still_unscheduled} STUCK</span>
+  `;
+  renderNotify(result.notify);
+  const list = document.getElementById('diffList');
+  if (result.changes.length === 0) {
+    list.innerHTML = '<div class="empty-hint">No interviews were affected — the disruption had full slack to absorb it.</div>';
+    return;
+  }
+  const companyById = Object.fromEntries(STATE.companies.map(c => [c.id, c]));
+  list.innerHTML = result.changes.map(c => {
+    const comp = companyById[c.company_id];
+    return `<div class="diff-row">
+      <span class="tag ${c.change}">${c.change.replace('_',' ')}</span>
+      <span class="who">${c.student_id} × ${comp ? comp.name : c.company_id}</span>
+      <div class="reason">${c.reason}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderNotify(notify) {
+  const el = document.getElementById('notifyBox');
+  if (!notify || (notify.students.length === 0 && notify.companies.length === 0)) {
+    el.innerHTML = '';
+    return;
+  }
+  const companyById = Object.fromEntries(STATE.companies.map(c => [c.id, c]));
+  const companyNames = notify.companies.map(id => companyById[id] ? companyById[id].name : id);
+  el.innerHTML = `
+    <div style="font-family:var(--mono);font-size:10.5px;letter-spacing:0.06em;color:var(--ink-dim);margin-bottom:7px;">WHO NEEDS TO BE INFORMED</div>
+    <div style="font-size:13px;margin-bottom:5px;"><b>${notify.students.length}</b> student(s) affected
+      ${notify.students.length ? `<span style="color:var(--ink-dim);font-family:var(--mono);font-size:11px;">(${notify.students.slice(0,8).join(', ')}${notify.students.length>8?', …':''})</span>` : ''}
+    </div>
+    <div style="font-size:13px;"><b>${companyNames.length}</b> compan${companyNames.length===1?'y':'ies'} to notify
+      ${companyNames.length ? `<span style="color:var(--ink-dim);">(${companyNames.join(', ')})</span>` : ''}
+    </div>
+  `;
+}
+
+function renderLog() {
+  const el = document.getElementById('log');
+  if (!STATE.log.length) { el.innerHTML = '<div class="empty-hint">Empty.</div>'; return; }
+  el.innerHTML = STATE.log.slice().reverse().map(e => {
+    const s = e.summary;
+    return `<div>${e.type} — moved ${s.moved}, cancelled ${s.cancelled}, new ${s.newly_scheduled}, stuck ${s.still_unscheduled}</div>`;
+  }).join('');
+}
+
+fetchState();
+</script>
+</body>
+</html>
