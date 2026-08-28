@@ -270,22 +270,3 @@ fix. **If asked "how do you know there are no clashes," the answer is "we
 check, every time we serve state" - not "the algorithm is designed not
 to."**
 
-## Known limitations (say these out loud before they're asked)
-
-- The greedy scheduler is not guaranteed optimal - a full CP/ILP solve
-  could likely raise coverage further. That's an intentional trade-off for
-  live-replan speed and explainability (§2), not an oversight.
-- Multi-disruption interactions (e.g. two overlapping late arrivals) are
-  handled correctly because each replan re-reads live state, but the diffs
-  are reported per-call - stacking several disruptions produces several
-  diffs rather than one combined summary. The session log stitches these
-  together for the story, but a true "combined diff" view is a natural
-  next feature.
-- The waitlist backfill only triggers on withdrawals; the same
-  strict-improvement idea could extend to any freed slot (e.g. after a
-  cancelled panel search fails) as a follow-up.
-- The walking buffer is a flat 1 slot (15 min) regardless of actual campus
-  layout (adjacent rooms vs. opposite ends of a building need different
-  buffers) - a configurable per-room-pair distance matrix would be the
-  natural next refinement, but flat-buffer is a reasonable default absent
-  real floor-plan data.
