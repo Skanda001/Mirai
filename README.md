@@ -238,7 +238,7 @@ things that update per-action, nothing else moves, and every unscheduled or
 cancelled item always carries a plain-English reason rather than an error
 code.
 
-## A bug we found by auditing our own output
+## A bug I found by auditing my own output
 
 The brief lists "student clashes" as an example metric to report. Rather
 than assume the hard constraint holds because the code says it should, we
